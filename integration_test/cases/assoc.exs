@@ -6,6 +6,7 @@ defmodule Ecto.Integration.AssocTest do
 
   alias Ecto.Integration.Custom
   alias Ecto.Integration.Post
+  alias Ecto.Integration.PostRelation
   alias Ecto.Integration.User
   alias Ecto.Integration.PostUser
   alias Ecto.Integration.Comment
@@ -229,6 +230,20 @@ defmodule Ecto.Integration.AssocTest do
     [u1, u2, u2] = TestRepo.all Ecto.assoc([p1, p2, p3], :users)
     assert u1.id == uid1
     assert u2.id == uid2
+  end
+
+  test "many_to_many with self using join_through schema" do
+    p1 = TestRepo.insert!(%Post{title: "1"})
+    p2 = TestRepo.insert!(%Post{title: "2"})
+    _pr = TestRepo.insert!(%PostRelation{parent_id: p1.id, child_id: p2.id, type: "foo"})
+
+    query =
+      p1
+      |> Ecto.assoc(:children)
+      |> join(:inner, [child], child in assoc(child, :children))
+      |> where([_parent, _child, rel, _grandchild], rel.type == "foo")
+
+    assert [] = TestRepo.all(query)
   end
 
   ## Changesets

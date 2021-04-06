@@ -64,12 +64,23 @@ defmodule Ecto.Integration.Post do
     has_many :users_comments, through: [:users, :comments]
     has_many :comments_authors_permalinks, through: [:comments_authors, :permalink]
     has_one :post_user_composite_pk, Ecto.Integration.PostUserCompositePk
+    many_to_many :children, Ecto.Integration.Post, join_through: Ecto.Integration.PostRelation, join_keys: [parent_id: :id, child_id: :id]
     timestamps()
   end
 
   def changeset(schema, params) do
     cast(schema, params, ~w(counter title blob temp public cost visits
                            intensity bid uuid meta posted)a)
+  end
+end
+
+defmodule Ecto.Integration.PostRelation do
+  use Ecto.Integration.Schema
+
+  schema "post_relations" do
+    field :type, :string
+    belongs_to :parent, Ecto.Integration.Post
+    belongs_to :child, Ecto.Integration.Post
   end
 end
 
