@@ -381,16 +381,6 @@ defmodule Ecto.Changeset.EmbeddedTest do
     assert changeset.valid?
   end
 
-  test "cast embeds_many with nested embed" do
-    params = %{"nested_many" => [%{"posts" => [%{"title" => "hello"}]}]}
-    changeset = cast(%Author{}, params, :nested_many)
-    assert changeset.valid?
-
-    changeset = Changeset.apply_changes(changeset) |> cast(params, :nested_many)
-    assert changeset.valid?
-    assert changeset.changes == %{}
-  end
-
   test "cast embeds_many with map" do
     changeset = cast(%Author{}, %{"posts" => %{0 => %{"title" => "hello"}}}, :posts)
     [post_change] = changeset.changes.posts
@@ -548,6 +538,17 @@ defmodule Ecto.Changeset.EmbeddedTest do
     assert changeset.changes == %{}
     assert changeset.errors == [invalid_posts: {"is invalid", [validation: :embed, type: {:array, :map}]}]
     refute changeset.valid?
+  end
+
+  test "cast embeds_many with discard_unchanged: true" do
+    params = %{"nested_many" => [%{"posts" => [%{"title" => "hello"}]}]}
+    changeset = cast(%Author{}, params, :nested_many)
+    assert changeset.valid?
+
+    schema = Changeset.apply_changes(changeset)
+    changeset = cast(schema, params, :nested_many, discard_unchanged: true)
+    assert changeset.valid?
+    assert changeset.changes == %{}
   end
 
   test "cast inline embeds_many with valid params" do

@@ -771,6 +771,8 @@ defmodule Ecto.Changeset do
     * `:invalid_message` - the message on failure, defaults to "is invalid"
     * `:force_update_on_change` - force the parent record to be updated in the
       repository if there is a change, defaults to `true`
+    * `:discard_unchanged` - if `true` and the embed value is unchanged, it will
+      be discarded from a valid changeset's `changes`.
     * `:with` - the function to build the changeset from params. Defaults to the
       `changeset/2` function of the embedded module. It can be changed by passing
       an anonymous function or an MFA tuple.  If using an MFA, the default changeset
@@ -780,16 +782,19 @@ defmodule Ecto.Changeset do
   """
   def cast_embed(changeset, name, opts \\ []) when is_atom(name) do
     cast_relation(:embed, changeset, name, opts)
-    |> maybe_unchanged(changeset, name)
+    |> maybe_discard_unchanged(name, opts[:discard_unchanged])
   end
 
-  defp maybe_unchanged(changeset, %{data: data} = original_changeset, name) do
+  defp maybe_discard_unchanged(%{valid?: true, data: data} = changeset, name, true) do
     original = Map.get(data, name)
+
     case fetch_field(changeset, name) do
-      {:changes, ^original} -> changeset
-      _ -> original_changeset
+      {:changes, ^original} -> delete_change(changeset, name)
+      _ -> changeset
     end
   end
+
+  defp maybe_discard_unchanged(changeset, _name, _not_true), do: changeset
 
   defp cast_relation(type, %Changeset{data: data, types: types}, _name, _opts)
       when data == nil or types == nil do
